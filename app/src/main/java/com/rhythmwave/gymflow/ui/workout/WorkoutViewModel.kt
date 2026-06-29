@@ -11,6 +11,7 @@ import com.rhythmwave.gymflow.service.TimerState
 import com.rhythmwave.gymflow.service.WorkoutTimerService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -319,6 +320,3 @@ class WorkoutViewModel @Inject constructor(
         super.onCleared()
     }
 }
-
-// Extension to get first emission from Flow
-private suspend fun <T> Flow<T>.first(): T = kotlinx.coroutines.flow.first()

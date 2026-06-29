@@ -190,10 +190,10 @@ fun GoalSelectionStep(
                         onGoalsChanged(newGoals)
                     },
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isSelected) goal.colorHex.copy(alpha = 0.15f) else SurfaceVariant
+                    containerColor = if (isSelected) Color(goal.colorHex).copy(alpha = 0.15f) else SurfaceVariant
                 ),
                 border = if (isSelected) {
-                    androidx.compose.foundation.BorderStroke(2.dp, goal.colorHex)
+                    androidx.compose.foundation.BorderStroke(2.dp, Color(goal.colorHex))
                 } else null
             ) {
                 Row(
@@ -212,7 +212,7 @@ fun GoalSelectionStep(
                             }
                             onGoalsChanged(newGoals)
                         },
-                        colors = CheckboxDefaults.colors(checkedColor = goal.colorHex)
+                        colors = CheckboxDefaults.colors(checkedColor = Color(goal.colorHex))
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column(modifier = Modifier.weight(1f)) {

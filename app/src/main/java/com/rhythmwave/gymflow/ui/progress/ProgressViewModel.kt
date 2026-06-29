@@ -9,6 +9,7 @@ import com.rhythmwave.gymflow.data.local.entity.WorkoutSetEntity
 import com.rhythmwave.gymflow.engine.ProgressionEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
@@ -297,6 +298,4 @@ class ProgressViewModel @Inject constructor(
             else -> 0L
         }
     }
-
-    private suspend fun <T> Flow<T>.first(): T = kotlinx.coroutines.flow.first()
 }
