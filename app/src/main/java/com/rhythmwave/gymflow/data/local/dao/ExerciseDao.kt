@@ -40,6 +40,9 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises WHERE id IN (:ids)")
     fun getByIds(ids: List<String>): Flow<List<ExerciseEntity>>
 
+    @Query("SELECT * FROM exercises ORDER BY muscleGroup, name")
+    suspend fun getAllSync(): List<ExerciseEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(exercises: List<ExerciseEntity>)
 

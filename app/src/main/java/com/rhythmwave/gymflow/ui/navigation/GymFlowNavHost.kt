@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.rhythmwave.gymflow.ui.home.HomeScreen
 import com.rhythmwave.gymflow.ui.program.ProgramScreen
+import com.rhythmwave.gymflow.ui.program.ProgramWizardScreen
 import com.rhythmwave.gymflow.ui.progress.ProgressScreen
 import com.rhythmwave.gymflow.ui.profile.ProfileScreen
 import com.rhythmwave.gymflow.ui.library.ExerciseLibraryScreen
@@ -37,7 +38,7 @@ fun GymFlowNavHost(navController: NavHostController) {
             // TODO: Phase 3
         }
         composable(Screen.ProgramWizard.route) {
-            // TODO: Phase 2
+            ProgramWizardScreen(navController = navController)
         }
     }
 }
