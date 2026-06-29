@@ -1,0 +1,40 @@
+# Android
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Kotlin
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Gradle
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio
+*.apk
+*.aab
+*.dex
+*.ap_
+*.jks
+*.keystore
+
+# Log files
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
