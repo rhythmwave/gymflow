@@ -10,6 +10,7 @@ import com.rhythmwave.gymflow.ui.program.ProgramWizardScreen
 import com.rhythmwave.gymflow.ui.progress.ProgressScreen
 import com.rhythmwave.gymflow.ui.profile.ProfileScreen
 import com.rhythmwave.gymflow.ui.library.ExerciseLibraryScreen
+import com.rhythmwave.gymflow.ui.workout.ActiveWorkoutScreen
 
 @Composable
 fun GymFlowNavHost(navController: NavHostController) {
@@ -35,7 +36,9 @@ fun GymFlowNavHost(navController: NavHostController) {
 
         // Modal screens
         composable(Screen.ActiveWorkout.route) {
-            // TODO: Phase 3
+            ActiveWorkoutScreen(
+                onExit = { navController.popBackStack() }
+            )
         }
         composable(Screen.ProgramWizard.route) {
             ProgramWizardScreen(navController = navController)
