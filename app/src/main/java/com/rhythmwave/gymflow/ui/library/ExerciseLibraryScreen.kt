@@ -1,5 +1,6 @@
 package com.rhythmwave.gymflow.ui.library
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.rhythmwave.gymflow.data.local.entity.ExerciseEntity
+import com.rhythmwave.gymflow.domain.model.ExperienceLevel
+import com.rhythmwave.gymflow.domain.model.MuscleGroup
 import com.rhythmwave.gymflow.ui.theme.*
 
 data class ExercisePreview(
@@ -29,6 +33,7 @@ data class ExercisePreview(
 fun ExerciseLibraryScreen(navController: NavHostController) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedMuscleGroup by remember { mutableStateOf<String?>(null) }
+    var selectedExercise by remember { mutableStateOf<ExercisePreview?>(null) }
 
     val exercises = remember {
         listOf(
@@ -123,18 +128,38 @@ fun ExerciseLibraryScreen(navController: NavHostController) {
                         )
                     }
                     items(exercises) { exercise ->
-                        ExerciseCard(exercise)
+                        ExerciseCard(exercise, onClick = { selectedExercise = exercise })
                     }
                 }
             }
         }
     }
+
+    // Exercise detail sheet
+    selectedExercise?.let { exercise ->
+        // Create a minimal ExerciseEntity for the detail sheet
+        val entity = ExerciseEntity(
+            id = exercise.id,
+            name = exercise.name,
+            muscleGroup = MuscleGroup.valueOf(exercise.muscleGroup.uppercase()),
+            equipmentJson = com.google.gson.Gson().toJson(exercise.equipment),
+            difficulty = ExperienceLevel.INTERMEDIATE,
+            isCompound = exercise.isCompound,
+            instructions = "See full exercise details in the exercise library.",
+            tagsJson = com.google.gson.Gson().toJson(exercise.tags),
+            alternativesJson = "[]"
+        )
+        ExerciseDetailSheet(
+            exercise = entity,
+            onDismiss = { selectedExercise = null }
+        )
+    }
 }
 
 @Composable
-fun ExerciseCard(exercise: ExercisePreview) {
+fun ExerciseCard(exercise: ExercisePreview, onClick: () -> Unit = {}) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

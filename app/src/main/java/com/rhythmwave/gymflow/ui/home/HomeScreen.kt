@@ -11,6 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.rhythmwave.gymflow.ui.workout.CheckInDialog
+import com.rhythmwave.gymflow.ui.workout.CheckInResult
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +24,7 @@ import com.rhythmwave.gymflow.ui.theme.*
 @Composable
 fun HomeScreen(navController: NavHostController) {
     var selectedCheckIn by remember { mutableStateOf<String?>(null) }
+    var showCheckInDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -70,7 +73,8 @@ fun HomeScreen(navController: NavHostController) {
                             icon = Icons.Rounded.FitnessCenter,
                             color = Primary,
                             selected = selectedCheckIn == "push",
-                            onClick = { selectedCheckIn = "push" },
+                            onClick = { selectedCheckIn = "push"
+                                showCheckInDialog = true },
                             modifier = Modifier.weight(1f)
                         )
                         CheckInButton(
@@ -79,7 +83,8 @@ fun HomeScreen(navController: NavHostController) {
                             icon = Icons.Rounded.WbSunny,
                             color = Secondary,
                             selected = selectedCheckIn == "light",
-                            onClick = { selectedCheckIn = "light" },
+                            onClick = { selectedCheckIn = "light"
+                                showCheckInDialog = true },
                             modifier = Modifier.weight(1f)
                         )
                         CheckInButton(
@@ -88,7 +93,8 @@ fun HomeScreen(navController: NavHostController) {
                             icon = Icons.Rounded.SelfImprovement,
                             color = OnSurfaceVariant,
                             selected = selectedCheckIn == "rest",
-                            onClick = { selectedCheckIn = "rest" },
+                            onClick = { selectedCheckIn = "rest"
+                                showCheckInDialog = true },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -204,6 +210,26 @@ fun HomeScreen(navController: NavHostController) {
                 }
             }
         }
+    }
+
+    // Check-in dialog
+    if (showCheckInDialog) {
+        CheckInDialog(
+            onDismiss = { showCheckInDialog = false },
+            onConfirm = { result ->
+                showCheckInDialog = false
+                // Navigate to workout based on recommendation
+                when (result.recommendation) {
+                    com.rhythmwave.gymflow.domain.model.DailyRecommendation.PUSH,
+                    com.rhythmwave.gymflow.domain.model.DailyRecommendation.LIGHT -> {
+                        navController.navigate("active_workout")
+                    }
+                    com.rhythmwave.gymflow.domain.model.DailyRecommendation.REST -> {
+                        // Show rest day content (already handled by selectedCheckIn)
+                    }
+                }
+            }
+        )
     }
 }
 
