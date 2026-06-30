@@ -1,6 +1,7 @@
 package com.rhythmwave.gymflow.ui.program
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,21 +13,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.rhythmwave.gymflow.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgramScreen(navController: NavHostController) {
-    val days = listOf("MON" to "Upper", "TUE" to "Lower", "WED" to "REST", "THU" to "Core", "FRI" to "Func", "SAT" to "REST", "SUN" to "REST")
+fun ProgramScreen(
+    navController: NavHostController,
+    viewModel: ProgramViewModel = hiltViewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
 
     Scaffold(
+        containerColor = Background,
         topBar = {
             TopAppBar(
-                title = { Text("My Programs", style = MaterialTheme.typography.titleLarge) },
+                title = { Text("My Programs", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { navController.navigate("program_wizard") }) {
                         Icon(Icons.Rounded.Add, contentDescription = "Add Program")
@@ -43,173 +50,189 @@ fun ProgramScreen(navController: NavHostController) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Active Program Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.FitnessCenter, contentDescription = null, tint = Primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "FULL FUNCTIONAL",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Primary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "4 days/week • 60 min sessions",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = OnSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    LinearProgressIndicator(
-                        progress = { 0.75f },
+            if (state.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Primary)
+                }
+            } else if (state.program != null) {
+                // Active Program Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                ) {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        color = Primary,
-                        trackColor = Primary.copy(alpha = 0.2f)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Week 4 of 4  — 75%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = OnSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { /* View Schedule */ }) {
-                            Text("View Schedule")
-                        }
-                        OutlinedButton(onClick = { /* Edit */ }) {
-                            Text("Edit Program")
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(Primary.copy(alpha = 0.2f), PrimaryDark.copy(alpha = 0.1f))
+                                )
+                            )
+                            .padding(20.dp)
+                    ) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.FitnessCenter, contentDescription = null, tint = Primary)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    state.program!!.name,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "${state.program!!.daysPerWeek} days/week • ${state.program!!.sessionDuration} min sessions",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = OnSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Split: ${state.program!!.splitType.name.replace("_", " ")}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSurfaceVariant
+                            )
                         }
                     }
                 }
-            }
 
-            // Weekly Schedule
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Weekly Schedule",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
+                // Weekly Schedule
+                if (state.days.isNotEmpty()) {
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
                     ) {
-                        days.forEach { (day, label) ->
-                            val isRest = label == "REST"
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = day,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = OnSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Box(
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                "Weekly Schedule",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            val dayNames = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+                            val allDays = (0..6).map { index ->
+                                state.days.find { it.dayIndex == index }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                allDays.forEachIndexed { index, day ->
+                                    val isRest = day == null || day.isRestDay
+                                    val isToday = index == state.todayIndex
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            dayNames[index],
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = if (isToday) Primary else OnSurfaceVariant,
+                                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(
+                                                    when {
+                                                        isToday -> Primary.copy(alpha = 0.3f)
+                                                        isRest -> Divider
+                                                        else -> Primary.copy(alpha = 0.1f)
+                                                    }
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                if (isRest) "REST" else (day?.dayName?.take(4) ?: ""),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = if (isRest) OnSurfaceVariant else Primary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Goals
+                if (state.goals.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                "Active Goals",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            state.goals.forEach { goal ->
+                                Row(
                                     modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            if (isRest) Divider
-                                            else Primary.copy(alpha = 0.2f)
-                                        ),
-                                    contentAlignment = Alignment.Center
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = label.take(4),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = if (isRest) OnSurfaceVariant else Primary,
-                                        fontWeight = FontWeight.Bold
+                                        "${goal.profile.icon} ${goal.profile.displayName}",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        "★".repeat(goal.priority) + "☆".repeat(5 - goal.priority),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = PrColor
                                     )
                                 }
                             }
                         }
                     }
                 }
-            }
-
-            // Create New Section
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Create New",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = { navController.navigate("program_wizard") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
-                    ) {
-                        Icon(Icons.Rounded.AutoAwesome, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Quick Start — AI Generated")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = { /* From Template */ },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Rounded.ListAlt, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("From Template")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = { /* Custom */ },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Rounded.Edit, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Custom Program")
-                    }
-                }
-            }
-
-            // Past Programs
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Past Programs",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
+            } else {
+                // No program
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(Icons.Rounded.Circle, contentDescription = null, tint = OnSurfaceVariant, modifier = Modifier.size(8.dp))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("Beginner Strength (Jan-Mar 2026)", style = MaterialTheme.typography.bodyMedium)
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Rounded.Circle, contentDescription = null, tint = OnSurfaceVariant, modifier = Modifier.size(8.dp))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("Fat Loss Phase (Nov-Dec 2025)", style = MaterialTheme.typography.bodyMedium)
+                        Icon(Icons.Rounded.FitnessCenter, contentDescription = null, tint = OnSurfaceVariant, modifier = Modifier.size(48.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "No Program Yet",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Create a program to start tracking your workouts",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Button(
+                            onClick = { navController.navigate("program_wizard") },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                        ) {
+                            Text("Create Program", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }

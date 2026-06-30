@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.rhythmwave.gymflow.data.local.GymFlowDatabase
 import com.rhythmwave.gymflow.data.local.dao.*
+import com.rhythmwave.gymflow.data.local.seed.DefaultProgramSeeder
 import com.rhythmwave.gymflow.data.local.seed.ExerciseSeedData
 import dagger.Module
 import dagger.Provides
@@ -31,15 +32,27 @@ object DatabaseModule {
         .addCallback(object : androidx.room.RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
-                // Seed exercises on first creation
+                // Seed exercises and create default program on first creation
                 CoroutineScope(Dispatchers.IO).launch {
                     val database = Room.databaseBuilder(
                         context,
                         GymFlowDatabase::class.java,
                         "gymflow.db"
                     ).build()
+
+                    // Seed exercises
                     val exercises = ExerciseSeedData.getAll()
                     database.exerciseDao().insertAll(exercises)
+
+                    // Create default program
+                    DefaultProgramSeeder.createDefaultProgram(
+                        programDao = database.programDao(),
+                        goalDao = database.goalDao(),
+                        programDayDao = database.programDayDao(),
+                        programExerciseDao = database.programExerciseDao(),
+                        exerciseDao = database.exerciseDao(),
+                        userConfigDao = database.userConfigDao()
+                    )
                 }
             }
         })

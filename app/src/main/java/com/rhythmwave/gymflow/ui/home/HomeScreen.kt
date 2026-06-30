@@ -16,21 +16,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.rhythmwave.gymflow.ui.theme.*
 import com.rhythmwave.gymflow.ui.workout.CheckInDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavHostController) {
+fun HomeScreen(
+    navController: NavHostController,
+    viewModel: HomeViewModel = hiltViewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
     var selectedCheckIn by remember { mutableStateOf<String?>(null) }
     var showCheckInDialog by remember { mutableStateOf(false) }
     var greeting by remember { mutableStateOf("") }
@@ -44,9 +47,26 @@ fun HomeScreen(navController: NavHostController) {
         }
     }
 
+    // Refresh data when returning to screen
+    LaunchedEffect(Unit) {
+        viewModel.loadData()
+    }
+
     Scaffold(
         containerColor = Background
     ) { padding ->
+        if (state.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Primary)
+            }
+            return@Scaffold
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -76,7 +96,7 @@ fun HomeScreen(navController: NavHostController) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Ready to crush it today?",
+                        text = if (state.isRestDay) "Rest day — recover well" else "Ready to crush it today?",
                         style = MaterialTheme.typography.bodyLarge,
                         color = OnSurfaceVariant
                     )
@@ -149,96 +169,120 @@ fun HomeScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Today's Workout
-            SectionHeader(title = "Today's Workout", action = "Edit")
-            Spacer(modifier = Modifier.height(8.dp))
+            // Today's Workout (real data)
+            if (state.dayWorkout != null) {
+                SectionHeader(title = "Today's Workout", action = "Edit")
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                "Day 2 — Lower + Explosive",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.Timer, contentDescription = null, tint = OnSurfaceVariant, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("~55 min", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Icon(Icons.Rounded.FitnessCenter, contentDescription = null, tint = OnSurfaceVariant, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("7 exercises", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    state.dayWorkout!!.dayName,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Rounded.Timer, contentDescription = null, tint = OnSurfaceVariant, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("~${state.dayWorkout!!.estimatedMinutes} min", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Icon(Icons.Rounded.FitnessCenter, contentDescription = null, tint = OnSurfaceVariant, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("${state.dayWorkout!!.exercises.size} exercises", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
+                                }
                             }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    // Exercise chips
-                    val exercises = listOf(
-                        "Squat" to "⚡",
-                        "RDL" to "🦵",
-                        "Box Jumps" to "🔥",
-                        "Hip Thrust" to "💪",
-                        "Lunges" to "🦿",
-                        "Calves" to "🦵",
-                        "HIIT" to "❤️"
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        exercises.take(5).forEach { (name, icon) ->
-                            SuggestionChip(
-                                onClick = {},
-                                label = { Text("$icon $name", style = MaterialTheme.typography.labelSmall) },
-                                shape = RoundedCornerShape(20.dp),
-                                colors = SuggestionChipDefaults.suggestionChipColors(
-                                    containerColor = Surface
+                        // Exercise chips (real data)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            state.dayWorkout!!.exercises.take(5).forEach { ex ->
+                                SuggestionChip(
+                                    onClick = {},
+                                    label = { Text(ex.name, style = MaterialTheme.typography.labelSmall) },
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = SuggestionChipDefaults.suggestionChipColors(
+                                        containerColor = Surface
+                                    )
                                 )
+                            }
+                            if (state.dayWorkout!!.exercises.size > 5) {
+                                SuggestionChip(
+                                    onClick = {},
+                                    label = { Text("+${state.dayWorkout!!.exercises.size - 5}", style = MaterialTheme.typography.labelSmall) },
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = SuggestionChipDefaults.suggestionChipColors(
+                                        containerColor = Primary.copy(alpha = 0.2f),
+                                        labelColor = Primary
+                                    )
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Button(
+                            onClick = { navController.navigate("active_workout") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                        ) {
+                            Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Start Workout",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
                             )
                         }
-                        SuggestionChip(
-                            onClick = {},
-                            label = { Text("+2", style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(20.dp),
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = Primary.copy(alpha = 0.2f),
-                                labelColor = Primary
-                            )
-                        )
                     }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Start button
-                    Button(
-                        onClick = { navController.navigate("active_workout") },
+                }
+            } else if (state.isRestDay) {
+                // Rest day card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(24.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("😴", fontSize = 48.sp)
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            "Start Workout",
-                            style = MaterialTheme.typography.titleMedium,
+                            "Rest Day",
+                            style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Recovery is part of training. Get 8+ hours of sleep, stay hydrated, and stretch if you feel like it.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnSurfaceVariant
                         )
                     }
                 }
@@ -246,7 +290,7 @@ fun HomeScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Weekly Progress
+            // Weekly Progress (real data)
             SectionHeader(title = "This Week", action = "See All")
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -258,21 +302,21 @@ fun HomeScreen(navController: NavHostController) {
             ) {
                 WeeklyStatCard(
                     icon = "🔥",
-                    value = "12",
+                    value = "${state.streak}",
                     label = "Day Streak",
                     color = StreakColor,
                     modifier = Modifier.weight(1f)
                 )
                 WeeklyStatCard(
                     icon = "📊",
-                    value = "45t",
+                    value = formatVolume(state.weekVolume),
                     label = "Volume",
                     color = Tertiary,
                     modifier = Modifier.weight(1f)
                 )
                 WeeklyStatCard(
                     icon = "💪",
-                    value = "2",
+                    value = "${state.weekPRs}",
                     label = "New PRs",
                     color = PrColor,
                     modifier = Modifier.weight(1f)
@@ -281,29 +325,29 @@ fun HomeScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Goal Rings
-            SectionHeader(title = "Weekly Goals", action = "Details")
-            Spacer(modifier = Modifier.height(8.dp))
+            // Goal Rings (real data)
+            if (state.weeklyGoals.isNotEmpty()) {
+                SectionHeader(title = "Weekly Goals", action = "Details")
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    val goals = listOf(
-                        Triple("Posture", 2 to 3, GoalPosture),
-                        Triple("Cardio", 2 to 3, GoalCardio),
-                        Triple("Core", 2 to 3, GoalCoreSpine),
-                        Triple("Strength", 2 to 3, Primary),
-                        Triple("Explosive", 3 to 3, GoalExplosive)
-                    )
-                    goals.forEach { (name, progress, color) ->
-                        GoalProgressRow(name, progress.first, progress.second, color)
-                        if (name != "Explosive") {
-                            Spacer(modifier = Modifier.height(10.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        state.weeklyGoals.forEachIndexed { index, goal ->
+                            GoalProgressRow(
+                                goal.name,
+                                goal.current,
+                                goal.target,
+                                Color(goal.color)
+                            )
+                            if (index < state.weeklyGoals.size - 1) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
                         }
                     }
                 }
@@ -363,6 +407,15 @@ fun HomeScreen(navController: NavHostController) {
     }
 }
 
+fun formatVolume(volume: Double): String {
+    return when {
+        volume >= 1000000 -> "${"%.1f".format(volume / 1000000)}M"
+        volume >= 1000 -> "${"%.1f".format(volume / 1000)}t"
+        volume > 0 -> "${volume.toInt()}kg"
+        else -> "0kg"
+    }
+}
+
 @Composable
 fun SectionHeader(title: String, action: String?) {
     Row(
@@ -396,12 +449,6 @@ fun EnergyButton(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.05f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f),
-        label = "scale"
-    )
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
