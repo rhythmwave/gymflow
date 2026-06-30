@@ -1,7 +1,12 @@
 package com.rhythmwave.gymflow.ui.workout
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -11,8 +16,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.rhythmwave.gymflow.ui.theme.*
 
 @Composable
@@ -21,184 +30,329 @@ fun WorkoutSummaryScreen(
     onRatingSelected: (Int) -> Unit,
     onFinish: () -> Unit
 ) {
-    var selectedRating by remember { mutableStateOf<Int?>(null) }
+    var selectedRating by remember { mutableIntStateOf(0) }
+    var showContent by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        Spacer(modifier = Modifier.height(32.dp))
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(300)
+        showContent = true
+    }
 
-        // Celebration
-        Icon(
-            Icons.Rounded.EmojiEvents,
-            contentDescription = null,
-            tint = PrColor,
-            modifier = Modifier.size(64.dp)
-        )
-        Text(
-            "Workout Complete!",
-            style = MaterialTheme.typography.displayMedium,
-            fontWeight = FontWeight.Bold,
-            color = Primary
-        )
-
-        // Stats card
-        Card(colors = CardDefaults.cardColors(containerColor = SurfaceVariant)) {
-            Column(
+    Scaffold(
+        containerColor = Background
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+        ) {
+            // Hero celebration
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Success.copy(alpha = 0.2f),
+                                Background
+                            )
+                        )
+                    )
+                    .padding(vertical = 48.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text(state.dayName, style = MaterialTheme.typography.titleMedium, color = Primary)
-                Spacer(modifier = Modifier.height(4.dp))
-                StatRow(Icons.Rounded.Timer, "Duration", formatTime(state.elapsedSeconds))
-                StatRow(Icons.Rounded.FitnessCenter, "Volume", "${"%.0f".format(state.totalVolume)} kg")
-                StatRow(Icons.Rounded.CheckCircle, "Sets", "${state.completedSets}/${state.totalSets}")
-                StatRow(Icons.Rounded.LocalFireDepartment, "Est. Calories", "${(state.totalVolume * 0.05).toInt()} kcal")
-            }
-        }
-
-        // PR detection (placeholder)
-        Card(colors = CardDefaults.cardColors(containerColor = PrColor.copy(alpha = 0.1f))) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Rounded.EmojiEvents, contentDescription = null, tint = PrColor)
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text("Personal Records", style = MaterialTheme.typography.titleMedium, color = PrColor)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("🎉", fontSize = 48.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        "Check progress tab for details",
-                        style = MaterialTheme.typography.bodySmall,
+                        "Workout Complete!",
+                        style = MaterialTheme.typography.displayMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Success
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        state.dayName,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = OnSurfaceVariant
                     )
                 }
             }
-        }
 
-        // Goal progress
-        Card(colors = CardDefaults.cardColors(containerColor = SurfaceVariant)) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Goal Progress", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(12.dp))
-                // Placeholder — real data from workout tags
-                GoalProgressRow("Strength", 0.8f, Primary)
-                GoalProgressRow("Core", 0.6f, GoalCoreSpine)
-                GoalProgressRow("Cardio", 0.4f, GoalCardio)
-            }
-        }
-
-        // Rating
-        Card(colors = CardDefaults.cardColors(containerColor = SurfaceVariant)) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("How was this workout?", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(12.dp))
+                // Stats Grid
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    listOf(
-                        1 to "😰\nHard",
-                        2 to "😐\nOkay",
-                        3 to "😊\nJust Right",
-                        4 to "💪\nGood",
-                        5 to "🤩\nEasy"
-                    ).forEach { (rating, label) ->
-                        val selected = rating == selectedRating
-                        FilterChip(
-                            selected = selected,
-                            onClick = {
-                                selectedRating = rating
-                                onRatingSelected(rating)
-                            },
-                            label = {
-                                Text(label, style = MaterialTheme.typography.bodySmall)
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Primary.copy(alpha = 0.2f)
+                    SummaryStatCard(
+                        icon = Icons.Rounded.Timer,
+                        value = formatTime(state.elapsedSeconds),
+                        label = "Duration",
+                        color = Tertiary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SummaryStatCard(
+                        icon = Icons.Rounded.MonitorWeight,
+                        value = formatVolume(state.totalVolume),
+                        label = "Volume",
+                        color = Primary,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    SummaryStatCard(
+                        icon = Icons.Rounded.CheckCircle,
+                        value = "${state.completedSets}/${state.totalSets}",
+                        label = "Sets",
+                        color = Success,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SummaryStatCard(
+                        icon = Icons.Rounded.LocalFireDepartment,
+                        value = "${(state.totalVolume * 0.05).toInt()}",
+                        label = "Calories",
+                        color = StreakColor,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // PR Detection
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = PrColor.copy(alpha = 0.1f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(PrColor.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Rounded.EmojiEvents, contentDescription = null, tint = PrColor, modifier = Modifier.size(24.dp))
+                        }
+                        Column {
+                            Text(
+                                "Personal Records",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = PrColor
                             )
-                        )
+                            Text(
+                                "Check the Progress tab for details",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSurfaceVariant
+                            )
+                        }
                     }
                 }
+
+                // Goal Progress
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            "Goal Progress",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        GoalSummaryRow("Strength", 0.8f, Primary)
+                        Spacer(modifier = Modifier.height(10.dp))
+                        GoalSummaryRow("Core", 0.6f, GoalCoreSpine)
+                        Spacer(modifier = Modifier.height(10.dp))
+                        GoalSummaryRow("Cardio", 0.4f, GoalCardio)
+                    }
+                }
+
+                // Rating
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "How was it?",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            listOf(
+                                1 to "😰",
+                                2 to "😐",
+                                3 to "😊",
+                                4 to "💪",
+                                5 to "🤩"
+                            ).forEach { (rating, emoji) ->
+                                val isSelected = rating == selectedRating
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            selectedRating = rating
+                                            onRatingSelected(rating)
+                                        }
+                                        .padding(8.dp)
+                                ) {
+                                    Text(
+                                        emoji,
+                                        fontSize = if (isSelected) 36.sp else 28.sp
+                                    )
+                                    if (isSelected) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            when (rating) {
+                                                1 -> "Hard"
+                                                2 -> "Tough"
+                                                3 -> "Good"
+                                                4 -> "Great"
+                                                5 -> "Easy"
+                                                else -> ""
+                                            },
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Actions
+                Button(
+                    onClick = onFinish,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                ) {
+                    Icon(Icons.Rounded.Home, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Back to Home",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
-
-        // Actions
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = onFinish,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
-            ) {
-                Icon(Icons.Rounded.Home, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Home")
-            }
-            OutlinedButton(
-                onClick = { /* Navigate to progress */ },
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(Icons.Rounded.TrendingUp, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Progress")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
 @Composable
-fun StatRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
+fun SummaryStatCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: String,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(color.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                value,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Text(
+                label,
+                style = MaterialTheme.typography.bodySmall,
+                color = OnSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun GoalSummaryRow(name: String, progress: Float, color: Color) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = OnSurfaceVariant, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
-        }
-        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-fun GoalProgressRow(name: String, progress: Float, color: androidx.compose.ui.graphics.Color) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(70.dp))
+        Text(
+            name,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.width(70.dp)
+        )
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier
                 .weight(1f)
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp)),
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp)),
             color = color,
-            trackColor = color.copy(alpha = 0.2f)
+            trackColor = color.copy(alpha = 0.15f)
         )
-        Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+        Text(
+            "${(progress * 100).toInt()}%",
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+private fun formatVolume(volume: Double): String {
+    return when {
+        volume >= 1000000 -> "${"%.1f".format(volume / 1000000)}M"
+        volume >= 1000 -> "${"%.1f".format(volume / 1000)}t"
+        else -> "${volume.toInt()}kg"
     }
 }
